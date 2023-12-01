@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "1.9.20"
+    application
 }
 
 group = "net.csik"
@@ -15,6 +16,10 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+application {
+    mainClass = "MainKt"
 }
 
 kotlin {
