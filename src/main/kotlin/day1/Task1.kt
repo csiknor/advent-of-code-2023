@@ -4,6 +4,12 @@ import java.io.File
 
 object Task1 {
 
+    // The idea is to get rid of the alphabetic characters and create numbers using the first and last of the remaining
+    // digits. E.g.:
+    //   1abc2 -> 12 -> 12
+    //   pqr3stu8vwx -> 38 -> 38
+    //   a1b2c3d4e5f -> 12345 -> 15
+    //   treb7uchet -> 7 -> 77
     fun solve() {
         // Loads the input file line by line
         File(Task1.javaClass.getResource("sample1.txt")!!.toURI()).readLines().asSequence()

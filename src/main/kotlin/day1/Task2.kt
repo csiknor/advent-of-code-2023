@@ -4,6 +4,11 @@ import java.io.File
 
 object Task2 {
     private val digits = mapOf("one" to 1, "two" to 2, "three" to 3, "four" to 4, "five" to 5, "six" to 6, "seven" to 7, "eight" to 8, "nine" to 9)
+
+    // Given numbers can be present as text and as digits as well, where textual numbers could even overlap (e.g.:
+    // eightree), we try to find each possible number, order them by their position in the string, represent them as
+    // digits and then create numbers using the first and last of the remaining digits. E.g.:
+    //   zoneight234 -> (one,1) (2,8) (3,9) (4,10) (eight,3) -> one,eight,2,3,4 -> 18234 -> 14
     fun solve() {
         // Loads the input file line by line
         File(Task2.javaClass.getResource("sample2.txt")!!.toURI()).readLines()
