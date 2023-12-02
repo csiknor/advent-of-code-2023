@@ -5,4 +5,4 @@ for the year [2023](https://adventofcode.com/2023). This year I'm using Kotlin t
 solutions, and aim to use primarily functional programming techniques. 
 
 For the detailed solutions, visit the individual days and tasks:
-* Day 1: [Task 1 & 2](src/main/kotlin/day1/Task1.kt)
+* Day 1: [Task 1](src/main/kotlin/day1/Task1.kt) & [Task 2](src/main/kotlin/day1/Task2.kt)
