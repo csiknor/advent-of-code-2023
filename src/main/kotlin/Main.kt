@@ -7,6 +7,9 @@ fun main(args: Array<String>) {
             day1.Task2.solve()
         }
 
-        2 -> day2.Task1.solve()
+        2 -> {
+            day2.Task1.solve()
+            day2.Task2.solve()
+        }
     }
 }
