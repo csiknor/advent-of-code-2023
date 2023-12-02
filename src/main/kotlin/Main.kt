@@ -1,7 +1,12 @@
-import day1.Task1
-import day1.Task2
+fun main(args: Array<String>) {
+    val day = args.getOrNull(1)?.toInt() ?: 2
 
-fun main() {
-    Task1.solve()
-    Task2.solve()
+    when (day) {
+        1 -> {
+            day1.Task1.solve()
+            day1.Task2.solve()
+        }
+
+        2 -> day2.Task1.solve()
+    }
 }
