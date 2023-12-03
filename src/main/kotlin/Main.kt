@@ -1,5 +1,7 @@
+import java.time.LocalDate
+
 fun main(args: Array<String>) {
-    val day = args.getOrNull(1)?.toInt() ?: 2
+    val day = args.getOrNull(1)?.toInt() ?: LocalDate.now().dayOfMonth
 
     when (day) {
         1 -> {
@@ -11,5 +13,11 @@ fun main(args: Array<String>) {
             day2.Task1.solve()
             day2.Task2.solve()
         }
+
+        3 -> {
+            day3.Task1.solve()
+        }
+
+        else -> println("No solution for day $day!")
     }
 }
