@@ -16,6 +16,7 @@ fun main(args: Array<String>) {
 
         3 -> {
             day3.Task1.solve()
+            day3.Task2.solve()
         }
 
         else -> println("No solution for day $day!")

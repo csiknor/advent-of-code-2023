@@ -6,7 +6,7 @@ const val ANSI_RESET = "\u001B[0m"
 const val ANSI_RED = "\u001B[31m"
 const val ANSI_GREEN = "\u001B[32m"
 
-data class Row(val index: Int, val source: String, val numbers: List<Pair<Int, IntRange>>, val symbols: List<Int>)
+data class Row(val index: Int, val source: String, val numbers: List<Pair<Int, IntRange>>, val symbols: List<Pair<String, Int>>)
 
 val emptyRow = Row(-1, "", emptyList(), emptyList())
 
@@ -62,18 +62,19 @@ object Task1 {
             .replaceRange(range.first, range.first, color)
 
     // A number is a part number if its location is adjacent to any of the symbols location
-    private fun partNumbers(index: Int, numbers: List<Pair<Int, IntRange>>, symbols: List<Int>) =
-        numbers.filter { (_, range) -> symbols.any { symLoc -> extendedRange(range).contains(symLoc) } }
+    private fun partNumbers(index: Int, numbers: List<Pair<Int, IntRange>>, symbols: List<Pair<String, Int>>) =
+        numbers.filter { (_, range) -> symbols.any { (_, symLoc) -> extendedRange(range).contains(symLoc) } }
             .map { (num, range) -> PartNumber(num, index, range) }
 
-    // In order to support diagonally adjacent symbols the range is extended by one in both directions
-    private fun extendedRange(range: IntRange) = (range.first - 1).rangeTo(range.last + 1)
-
-    // Numbers are extracted from the text using a regular expression matching one or more digits
-    private fun numbersIn(s: String) = """(\d+)""".toRegex().findAll(s).map { m -> m.value.toInt() to m.range }.toList()
-
-    // Symbols are extracted from the text using a regular expression matching any single character but word characters
-    // or the dot.
-    private fun symbolsIn(s: String) = """([^\w.])""".toRegex().findAll(s).map { m -> m.range.first }.toList()
-
 }
+
+
+// In order to support diagonally adjacent symbols the range is extended by one in both directions
+fun extendedRange(range: IntRange) = (range.first - 1).rangeTo(range.last + 1)
+
+// Numbers are extracted from the text using a regular expression matching one or more digits
+fun numbersIn(s: String) = """(\d+)""".toRegex().findAll(s).map { m -> m.value.toInt() to m.range }.toList()
+
+// Symbols are extracted from the text using a regular expression matching any single character but word characters
+// or the dot.
+fun symbolsIn(s: String) = """([^\w.])""".toRegex().findAll(s).map { m -> m.value to m.range.first }.toList()
