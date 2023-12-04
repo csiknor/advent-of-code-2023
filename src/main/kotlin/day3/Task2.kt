@@ -14,14 +14,14 @@ object Task2 {
     // and if the next row's symbols are adjacent to current or next row's numbers. With that we construct the gear.
     // Since we can find the same gear multiple times, we remove any duplicate. Finally, we sum the numbers.
     fun solve() {
-        File(javaClass.getResource("test.txt")!!.toURI()).useLines { line -> process(line) }
+        File(javaClass.getResource("input.txt")!!.toURI()).useLines { line -> process(line) }
     }
 
     private fun process(lines: Sequence<String>) = lines
         // We parse the numbers and the symbols in the row with the row index
         .mapIndexed { index, line -> Row(index, line, numbersIn(line), symbolsIn(line)) }
         // We combine three consecutive rows together
-        .runningFold(Triple(emptyRow, emptyRow, emptyRow)) { acc, row -> Triple(acc.second, acc.third, row) }
+        .windowed(3)
         // We extract the gears in the current and next rows
         // Note: the previous row is already checked in a previous iteration when it was the next row
         .flatMap { (prev, curr, next) ->

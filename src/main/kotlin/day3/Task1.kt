@@ -8,8 +8,6 @@ const val ANSI_GREEN = "\u001B[32m"
 
 data class Row(val index: Int, val source: String, val numbers: List<Pair<Int, IntRange>>, val symbols: List<Pair<String, Int>>)
 
-val emptyRow = Row(-1, "", emptyList(), emptyList())
-
 data class PartNumber(val num: Int, val rowNum: Int, val range: IntRange)
 
 object Task1 {
@@ -30,7 +28,7 @@ object Task1 {
         // We parse the numbers and the symbols in the row with the row index
         .mapIndexed { index, line -> Row(index, line, numbersIn(line), symbolsIn(line)) }
         // We pair two consecutive rows together
-        .runningFold(Pair(emptyRow, emptyRow)) { (_, prevCurrRow), row -> Pair(prevCurrRow, row) }
+        .windowed(2)
         // We extract the part numbers in each row
         .flatMap { (prevRow, currRow) ->
             // part numbers in the previous row based on symbols below them (i.e.: in the current row)
