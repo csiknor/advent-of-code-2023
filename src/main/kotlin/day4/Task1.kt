@@ -10,6 +10,9 @@ data class Card(val id: Int, val winningNumbers: List<Int>, val numbers: List<In
 
     // Points are calculated as a power of two unless no matching numbers
     fun pointsWin() = matchingNumbers().count().let { if (it > 0) 2.0.pow(it - 1).toInt() else 0 }
+
+    // Count of matching numbers
+    fun matchingCount() = matchingNumbers().count()
 }
 
 object Task1 {
