@@ -24,6 +24,10 @@ fun main(args: Array<String>) {
             day4.Task2.solve("input.txt")
         }
 
+        5 -> {
+            day5.Task1.solve("input.txt")
+        }
+
         else -> println("No solution for day $day!")
     }
 }
