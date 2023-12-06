@@ -3,6 +3,10 @@ package day5
 import java.io.File
 
 object Task2 {
+
+    // Similarly to Task1, we parse the intput int seeds and mappings, although in this case, seeds are parsed into
+    // ranges, instead of individual seeds. Once parsed, we execute the same logic as before.
+    // WARNING: this is a brute force algorithm, and as such very slow.
     fun solve(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 

@@ -9,3 +9,4 @@ For the detailed solutions, visit the individual days and tasks:
 * Day 2: [Task 1](src/main/kotlin/day2/Task1.kt) & [Task 2](src/main/kotlin/day2/Task2.kt)
 * Day 3: [Task 1](src/main/kotlin/day3/Task1.kt) & [Task 2](src/main/kotlin/day3/Task2.kt)
 * Day 4: [Task 1](src/main/kotlin/day4/Task1.kt) & [Task 2](src/main/kotlin/day4/Task2.kt)
+* Day 5: [Task 1](src/main/kotlin/day5/Task1.kt) & [Task 2](src/main/kotlin/day5/Task2.kt)
