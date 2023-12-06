@@ -3,6 +3,10 @@ package day6
 import java.io.File
 
 object Task1 {
+
+    // We parse the input into two lists and zip them together so that each race is represented. We calculate all the
+    // distances for each amount of seconds we hold the button, and filter for those that beat the record. We multiply
+    // these together to get the final result.
     fun solve(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
