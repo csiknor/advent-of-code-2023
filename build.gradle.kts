@@ -22,6 +22,7 @@ tasks.test {
 
 application {
     mainClass = "MainKt"
+    applicationDefaultJvmArgs = listOf("-Xms1024m", "-Xmx8192m")
 }
 
 kotlin {
