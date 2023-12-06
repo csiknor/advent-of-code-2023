@@ -13,6 +13,6 @@ object Task1 {
         .also { println("Result: $it ") }
 }
 
-fun travelDistance(hold: Int, time: Int) = hold * (time - hold)
+fun travelDistance(hold: Long, time: Long) = hold * (time - hold)
 
-fun parseLabeledNumberList(input: String): List<Int> = input.split(""":\s*""".toRegex()).last().split("""\s+""".toRegex()).map { it.toInt() }
+fun parseLabeledNumberList(input: String): List<Long> = input.split(""":\s*""".toRegex()).last().split("""\s+""".toRegex()).map { it.toLong() }
