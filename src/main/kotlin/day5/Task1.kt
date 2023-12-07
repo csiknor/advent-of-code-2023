@@ -5,7 +5,7 @@ import java.io.File
 object Task1 {
 
     // We parse the input seeds and mappings. In case of mappings the names are not important, we just store them as a
-    // list and going to use them in their default order. Then, for each seed we travers the mappings and fold the
+    // list and going to use them in their default order. Then, for each seed we traverse the mappings and fold the
     // mapped values into its final fully mapped value, which is the location. With that we calculate the minimum.
     fun solve(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
