@@ -1,7 +1,9 @@
 import java.time.LocalDate
 
+private const val DEFAULT_INPUT_FILENAME = "input.txt"
+
 fun main(args: Array<String>) {
-    val day = args.getOrNull(1)?.toInt() ?: LocalDate.now().dayOfMonth
+    val day = args.getOrNull(0)?.toInt() ?: LocalDate.now().dayOfMonth
 
     when (day) {
         1 -> {
@@ -20,18 +22,22 @@ fun main(args: Array<String>) {
         }
 
         4 -> {
-            day4.Task1.solve("input.txt")
-            day4.Task2.solve("input.txt")
+            day4.Task1.solve(DEFAULT_INPUT_FILENAME)
+            day4.Task2.solve(DEFAULT_INPUT_FILENAME)
         }
 
         5 -> {
-            day5.Task1.solve("input.txt")
-            day5.Task2.solve("input.txt")
+            day5.Task1.solve(DEFAULT_INPUT_FILENAME)
+            day5.Task2.solve(DEFAULT_INPUT_FILENAME)
         }
 
         6 -> {
-            day6.Task1.solve("input.txt")
-            day6.Task2.solve("input.txt")
+            day6.Task1.solve(DEFAULT_INPUT_FILENAME)
+            day6.Task2.solve(DEFAULT_INPUT_FILENAME)
+        }
+
+        7 -> {
+            println("Solution for day $day, task 1: " + day7.Task1.solve(DEFAULT_INPUT_FILENAME))
         }
 
         else -> println("No solution for day $day!")
