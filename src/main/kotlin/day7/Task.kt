@@ -20,9 +20,16 @@ enum class HandType {
     HIGH_CARD,
 }
 
+// Each hand consists of five cards – either regular or joker – and provides methods to derive the
+// type of the hand and to compare two hands.
 data class Hand<T : Enum<T>>(val cards: List<T>) : Comparable<Hand<T>> {
+
+    // The type of the hand is calculated by grouping the hand by card and considering the number of
+    // groups and the size of the biggest group.
+    // In case of Joker cards, the groups don't include the Joker, but the biggest group is
+    // extended by the number Jokers in the hand. In case of 5 Jokers a special case of zero groups
+    // is supported.
     fun type() = cards
-        .sorted()
         .groupingBy { it }.eachCount()
         .filter { it.key !is JokerCard || it.key != JokerCard.CARD_J }
         .let {
@@ -49,6 +56,8 @@ data class Hand<T : Enum<T>>(val cards: List<T>) : Comparable<Hand<T>> {
 
     private fun numberOfJokers() = cards.count { it is JokerCard && it == JokerCard.CARD_J }
 
+    // The order of the hands is based on their type primarily, but in case of equality, the cards'
+    // order is used. In both cases we rely on the ordering of the card and hand type enums order.
     override operator fun compareTo(other: Hand<T>): Int = when {
         type() > other.type() -> -1
         type() < other.type() -> 1
@@ -60,13 +69,18 @@ data class Hand<T : Enum<T>>(val cards: List<T>) : Comparable<Hand<T>> {
 fun handOfRegular(input: String) = handOfType(input, RegularCard::class.java)
 fun handOfJoker(input: String) = handOfType(input, JokerCard::class.java)
 
+// Parses a hand into the specified Card type enum.
 fun <T : Enum<T>> handOfType(input: String, clazz: Class<T>) =
     Hand(input.map { char -> clazz.enumConstants.find { it.name == "CARD_$char" }!! })
 
 object Task {
+
+    // Solution involves parsing the hands and the bids. Then the hands are sorted by their value and the pot is
+    // calculated using the index of the sorted order and the bid of each hand.
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) { handOfRegular(it) } }
 
+    // In this part we do the same thing except for playing with a different type of cards that supports Jokers.
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) { handOfJoker(it) } }
 
