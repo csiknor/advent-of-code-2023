@@ -6,6 +6,8 @@ import java.io.File
 enum class Direction { NORTH, EAST, SOUTH, WEST }
 
 data class Point(val row: Int, val column: Int, val tile: Tile) {
+
+    // Gives the adjacent tile towards the direction we advanced to and the direction we came from.
     fun advanceTowards(it: Direction, lookup: (row: Int, col: Int) -> Tile) = when (it) {
         NORTH -> Triple(SOUTH, row - 1, column)
         EAST -> Triple(WEST, row, column + 1)
@@ -37,9 +39,18 @@ data class Progress(
 )
 
 object Task {
+
+    // The solution involved parsing the input into a matrix of tiles, finding the starting point and identifying the
+    // tile at that point, and finally traversing the path from the starting point counting the steps and halving it to
+    // get the result.
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
+    // To find the inner tiles of the path we extract the coordinates of the tiles on the path and for each row we count
+    // the tiles between two tiles of the path crossing that row. This involves understanding which side of a path tile
+    // is inside or outside. For each row we start from left to right, and if we hit a path tile we flip the side. When
+    // the path is horizontally matching the row for a period, we identify if it crosses it eventually or returns to
+    // where it came from in which case we don't flip sides.
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(line) }
 
@@ -53,6 +64,9 @@ object Task {
             }
     }
 
+    // For each row we start from left to right, and if we hit a path tile we flip the side. When
+    // the path is horizontally matching the row for a period, we identify if it crosses it eventually or returns to
+    // where it came from in which case we don't flip sides.
     private fun groundInside(points: List<Map.Entry<Int, Point>>) = points
         .runningFold(Progress(0, false, null, null)) { prev, (_, point) ->
             val from = if (horizontalLine(point.tile)) prev.from else verticalDirection(point.tile)
@@ -76,6 +90,9 @@ object Task {
         .groupBy { it.row }
         .mapValues { (_, points) -> points.associateBy { it.column } }
 
+    // Finding the path is generating a sequence of tile from the starting point advancing towards its next neighbour
+    // until we encounter the starting tile again. Each tile has two neighbours, so we need to keep track of the
+    // direction we've come from to find the right one to advance towards to.
     private fun pathFrom(start: Point, map: List<List<Tile>>) = sequenceOf(start) +
             generateSequence(start.tile.neighbours.last() to start) { (from, point) ->
                 point.advanceTowards(point.tile.neighbours.first { it != from }) { row, col -> map[row][col] }
@@ -85,17 +102,22 @@ object Task {
                 .takeWhile { it != start }
 }
 
+// Extracting the start point involves two steps: finding and identifying the start point and replacing it in the
+// matrix.
 fun extractStart(map: List<List<Tile>>) = startingPoint(map).let {
     it to map.replaceElementAt(it.row, map[it.row].replaceElementAt(it.column, it.tile))
 }
 
 fun <E> List<E>.replaceElementAt(i: Int, e: E) = take(i).plusElement(e).plus(drop(i+1))
 
+// After finding the start point by traversing the matrix we need to figure out what tile it should be based on its
+// neighbours.
 fun startingPoint(map: List<List<Tile>>) = map.indexOfFirst { row -> row.contains(Tile.S) }
     .let { it to map[it].indexOfFirst { tile -> tile == Tile.S } }
     .let { (row, col) -> Point(row, col, Tile.S) }
     .let { it.copy(tile = figureTile(Direction.entries.map { dir -> tileOrNull(it, dir, map) })) }
 
+// Figuring out the tile is based on the adjacent tiles connections towards the starting tile.
 fun figureTile(adjacent: List<Tile>) = when {
     adjacent.component1().neighbours.contains(SOUTH) -> when {
         adjacent.component2().neighbours.contains(WEST) -> Tile.NE
