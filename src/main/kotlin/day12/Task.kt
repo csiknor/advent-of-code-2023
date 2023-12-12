@@ -1,53 +1,79 @@
 package day12
 
-import day10.replaceElementAt
 import java.io.File
+import kotlin.math.min
 
-data class Row(val damaged: List<Boolean?>, val counts: List<Int>)
+data class R(val damaged: String, val counts: List<Int>)
 
 object Task {
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
     fun solvePart2(filename: String) =
-        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
+        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line, 5) }
 
-    fun process(lines: Sequence<String>) = parse(lines).map {
-        arrangements(it).count()
+    fun process(lines: Sequence<String>, rate: Int = 1) = par(lines, rate).mapIndexed { index, r ->
+        println(index)
+        arr(r)
     }.sum()
 
-    fun arrangements(row: Row): List<Row> {
-        if (row.damaged.all { it != null }) return if (valid(row)) listOf(row) else emptyList()
+    val cache: MutableMap<R, Long> = mutableMapOf()
 
-        if (can(row)) {
-            val index = row.damaged.indexOfFirst { it == null }
-            return listOf(
-                arrangements(Row(row.damaged.replaceElementAt(index, true), row.counts)),
-                arrangements(Row(row.damaged.replaceElementAt(index, false), row.counts))
-            ).flatten()
-        }
+    fun arr(r: R, level: Int = 0): Long {
+        val v = cache[r]
+        if (v!=null) return v
 
-        return emptyList()
+        fun p(s: String) = Unit //println("  ".repeat(level) + s)
+
+        return (if (r.damaged.isEmpty()) 1L.also { p("Empty $r") } else
+            tryReduce(r)?.also { p("Reduced $r -> $it") }?.let {
+                if (it.damaged.isEmpty()) 1L.also { p("Empty2 $it") }
+                else
+                    arr(it.copy(damaged = it.damaged.replaceFirstChar { '#' }), level + 1) +
+                            arr(it.copy(damaged = it.damaged.replaceFirstChar { '.' }), level + 1)
+            } ?: 0L.also { p("Null $r") }).also { cache[r] = it }
     }
 
-    fun can(row: Row) =
-        row.damaged.takeWhile { it != null }.fold(listOf(0)) { acc, it ->
-            if (it == true) acc.dropLast(1) + (acc.last()+1)
-            else if (acc.last()==0) acc else acc + 0
-        }.zip(row.counts).all { (a, b) -> a<=b }
+    fun tryReduceL(r: R): R? = r.let { it.copy(damaged = it.damaged.trimStart { it == '.' }) }.let { rt ->
+        when {
+            rt.damaged.startsWith('?') -> rt
+            rt.damaged.isNotEmpty() && rt.counts.isEmpty() -> null
+            rt.counts.isNotEmpty() && rt.damaged.isEmpty() -> null
+            rt.damaged.isEmpty() || rt.counts.isEmpty() -> rt
+            else ->
+                """^\.*(#+)([#?]*)\.*([#.?]*)""".toRegex().find(rt.damaged)
+                    ?.takeIf { it.groupValues[1].length <= rt.counts.first() }
+                    ?.takeIf { rt.counts.first() <= it.groupValues[1].length + it.groupValues[2].length }
+                    ?.let { match ->
+                        val matched = min(rt.counts.first(), match.groupValues[1].length + match.groupValues[2].length)
+                        val remaining = rt.counts.first() - matched
+                        val list = if (remaining == 0) emptyList() else listOf(remaining)
+                        if (rt.damaged.drop(matched).firstOrNull() == '#') return null
 
-    fun valid(row: Row) =
-        row.damaged.fold(listOf(0)) { acc, it ->
-            if (it == true) acc.dropLast(1) + (acc.last()+1)
-            else if (acc.last()==0) acc else acc + 0
-        }.let { if (it.last() == 0) it.dropLast(1) else it } == row.counts
+                        tryReduceL(R(
+                            rt.damaged.drop(matched + 1).trimStart { it == '.' },
+                            (list + rt.counts.drop(1))
+                        ))
+                    }
+        }
+    }
 
-    fun parse(lines: Sequence<String>) = lines.map { line ->
+    fun tryReduceR(r: R) = tryReduceL(R(r.damaged.reversed(), r.counts.reversed()))?.let {
+        R(it.damaged.reversed(), it.counts.reversed())
+    }
+
+    fun tryReduce(r: R) = tryReduceL(r)?.let { tryReduceR(it) }
+
+    fun par(lines: Sequence<String>, rate: Int = 1) = lines.map { line ->
         line.split(" ").let { (first, second) ->
-            Row(
-                first.map { when (it) { '.' -> false '#' -> true else -> null } },
-                second.split(",").map { it.toInt() }
+            R(
+                first.toList().multiply(rate, '?').joinToString(""),
+                second.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.multiply(rate)
             )
         }
     }
+
+    fun <E> List<E>.multiply(times: Int, separator: E? = null) = 1.rangeTo(times).fold(emptyList<E>()) { acc, _ ->
+        (if (separator == null) acc else acc + separator) + this
+    }.drop(if (separator == null) 0 else 1)
 }
