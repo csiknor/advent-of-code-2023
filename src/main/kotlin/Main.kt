@@ -67,6 +67,10 @@ fun main(args: Array<String>) {
             println("Solution for day $day, task 1: " + day13.Task.solvePart1(DEFAULT_INPUT_FILENAME))
             println("Solution for day $day, task 2: " + day13.Task.solvePart2(DEFAULT_INPUT_FILENAME))
         }
+        14 -> {
+            println("Solution for day $day, task 1: " + day14.Task.solvePart1(DEFAULT_INPUT_FILENAME))
+            println("Solution for day $day, task 2: " + day14.Task.solvePart2(DEFAULT_INPUT_FILENAME))
+        }
 
         else -> println("No solution for day $day!")
     }
