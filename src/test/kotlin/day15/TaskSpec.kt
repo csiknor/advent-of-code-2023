@@ -9,7 +9,7 @@ class TaskSpec: StringSpec({
     }
 
     "solves sample 2" {
-        Task.solvePart2("sample.txt") shouldBe TODO()
+        Task.solvePart2("sample.txt") shouldBe 145
     }
 
     "hash" {
