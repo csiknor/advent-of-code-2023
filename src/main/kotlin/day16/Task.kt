@@ -2,7 +2,6 @@ package day16
 
 import day16.Dir.*
 import java.io.File
-import java.util.Comparator
 
 enum class Tile(
     val char: Char,
@@ -112,10 +111,34 @@ data class Move(val loc: Loc, val dir: Dir) {
 
 object Task {
     fun solvePart1(filename: String) =
-        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
+        File(javaClass.getResource(filename)!!.toURI()).useLines { lines ->
+            process(
+                parse(lines),
+                listOf(Move(Loc(0, 0), RIGHT))
+            )
+        }
 
     fun solvePart2(filename: String) =
-        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
+        File(javaClass.getResource(filename)!!.toURI()).useLines { lines ->
+            parse(lines).let { board ->
+                process(
+                    board,
+                    board.indices.flatMap { rowIndex ->
+                        listOf(
+                            Move(Loc(rowIndex, 0), RIGHT),
+                            Move(Loc(rowIndex, board.first().size - 1), LEFT)
+                        )
+                    } +
+                            board.first().indices.flatMap { colIndex ->
+                                listOf(
+                                    Move(Loc(0, colIndex), DOWN),
+                                    Move(Loc(board.size - 1, colIndex), UP)
+                                )
+                            }
+
+                )
+            }
+        }
 
     /*
     Board is made of tiles
@@ -137,45 +160,29 @@ object Task {
     / (R,D)(L,U)
 
      */
-    fun process(lines: Sequence<String>) = parse(lines).let { board ->
-        generateSequence(listOf(Move(Loc(0, 0), RIGHT)) to emptyList<Move>()) { (movements, history) ->
+    fun process(board: List<List<Tile>>, starts: List<Move>) = starts.maxOfOrNull { start ->
+        generateSequence(listOf(start) to emptyList<Move>()) { (movements, history) ->
             movements
-                .flatMap { m ->
-                    m.next(board[m.loc.row][m.loc.col])
-//                        .also { println("$m -> $it") }
-                }
+                .flatMap { m -> m.next(board[m.loc.row][m.loc.col]) }
                 .filter { m -> onBoard(m, board) && !equivalentMoveExists(m, history, board[m.loc.row][m.loc.col]) }
                 .let { it to (history + movements) }
         }
             .takeWhile { (movements, _) -> movements.isNotEmpty() }
             .last()
             .let { (movements, history) ->
-                history.plus(movements).also { println("History") }
+                history.plus(movements)
                     .map { it.loc }.distinct()
-                    .also { printHistory(it) }
                     .count()
             }
     }
 
-    fun printHistory(history: List<Loc>) {
-        history.sortedWith(Comparator.comparing<Loc?, Int?> { it.row }.thenBy { it.col })
-            .fold(null as Loc?) { acc, loc ->
-                val prevCol = if (acc == null || acc.row != loc.row) -1 else acc.col
-                print("\n".repeat(loc.row - (acc?.row ?: 0)))
-                print(".".repeat(loc.col - prevCol - 1))
-                print("#")
-
-                loc
-            }.also { println() }
-    }
-
-    fun equivalentMoveExists(move: Move, history: List<Move>, tile: Tile) = history
+    private fun equivalentMoveExists(move: Move, history: List<Move>, tile: Tile) = history
         .any { m ->
             m.loc == move.loc
                     && (m.dir == move.dir || tile.equivalent(m.dir) == move.dir)
         }
 
-    fun onBoard(move: Move, board: List<List<Tile>>) =
+    private fun onBoard(move: Move, board: List<List<Tile>>) =
         board.indices.contains(move.loc.row)
                 && board.first().indices.contains(move.loc.col)
 
