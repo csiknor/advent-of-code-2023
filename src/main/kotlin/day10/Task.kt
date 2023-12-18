@@ -3,7 +3,14 @@ package day10
 import day10.Direction.*
 import java.io.File
 
-enum class Direction { NORTH, EAST, SOUTH, WEST }
+enum class Direction { NORTH, EAST, SOUTH, WEST;
+    fun opposite() = when(this) {
+        NORTH -> SOUTH
+        EAST -> WEST
+        SOUTH -> NORTH
+        WEST -> EAST
+    }
+}
 
 data class Point(val row: Int, val column: Int, val tile: Tile) {
 
@@ -44,7 +51,7 @@ object Task {
     // tile at that point, and finally traversing the path from the starting point counting the steps and halving it to
     // get the result.
     fun solvePart1(filename: String) =
-        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
+        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(parse(line)) }
 
     // To find the inner tiles of the path we extract the coordinates of the tiles on the path and for each row we count
     // the tiles between two tiles of the path crossing that row. This involves understanding which side of a path tile
@@ -52,12 +59,12 @@ object Task {
     // the path is horizontally matching the row for a period, we identify if it crosses it eventually or returns to
     // where it came from in which case we don't flip sides.
     fun solvePart2(filename: String) =
-        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(line) }
+        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(parse(line)) }
 
-    private fun process(lines: Sequence<String>) = extractStart(parse(lines)).let { (start, map) ->
+    fun process(map: MutableMap<Int, MutableMap<Int, Tile>>) = extractStart(map).let { (start, map) ->
         pathFrom(start, map).count() / 2 }
 
-    private fun process2(lines: Sequence<String>) = extractStart(parse(lines)).let { (start, map) ->
+    fun process2(map: MutableMap<Int, MutableMap<Int, Tile>>) = extractStart(map).let { (start, map) ->
         associateByRowAndColumn(pathFrom(start, map))
             .entries.sortedBy { it.key }.map { it.value }.sumOf { row ->
                 groundInside(row.entries.sortedBy { it.key })
@@ -75,7 +82,7 @@ object Task {
             Progress(count, inside, from, point)
         }
         .drop(1)
-        .sumOf { it.count }
+        .sumOf { it.count.toLong() }
 
     private fun horizontalLine(tile: Tile) = tile == Tile.EW
 
@@ -93,9 +100,9 @@ object Task {
     // Finding the path is generating a sequence of tile from the starting point advancing towards its next neighbour
     // until we encounter the starting tile again. Each tile has two neighbours, so we need to keep track of the
     // direction we've come from to find the right one to advance towards to.
-    private fun pathFrom(start: Point, map: List<List<Tile>>) = sequenceOf(start) +
+    private fun pathFrom(start: Point, map: Map<Int, Map<Int, Tile>>) = sequenceOf(start) +
             generateSequence(start.tile.neighbours.last() to start) { (from, point) ->
-                point.advanceTowards(point.tile.neighbours.first { it != from }) { row, col -> map[row][col] }
+                point.advanceTowards(point.tile.neighbours.first { it != from }) { row, col -> map.getValue(row).getValue(col) }
             }
                 .drop(1)
                 .map { (_, point) -> point }
@@ -104,16 +111,16 @@ object Task {
 
 // Extracting the start point involves two steps: finding and identifying the start point and replacing it in the
 // matrix.
-fun extractStart(map: List<List<Tile>>) = startingPoint(map).let {
-    it to map.replaceElementAt(it.row, map[it.row].replaceElementAt(it.column, it.tile))
+fun extractStart(map: MutableMap<Int, MutableMap<Int, Tile>>) = startingPoint(map).let { start ->
+    start to map.apply { computeIfAbsent(start.row){ mutableMapOf() }[start.column] = start.tile }
 }
 
 fun <E> List<E>.replaceElementAt(i: Int, e: E) = take(i).plusElement(e).plus(drop(i+1))
 
 // After finding the start point by traversing the matrix we need to figure out what tile it should be based on its
 // neighbours.
-fun startingPoint(map: List<List<Tile>>) = map.indexOfFirst { row -> row.contains(Tile.S) }
-    .let { it to map[it].indexOfFirst { tile -> tile == Tile.S } }
+fun startingPoint(map: Map<Int, Map<Int, Tile>>) = map.entries.first { (_, row) -> row.values.contains(Tile.S) }
+    .let { (r, row) -> r to row.entries.first { (_, tile) -> tile == Tile.S }.key }
     .let { (row, col) -> Point(row, col, Tile.S) }
     .let { it.copy(tile = figureTile(Direction.entries.map { dir -> tileOrNull(it, dir, map) })) }
 
@@ -134,9 +141,13 @@ fun figureTile(adjacent: List<Tile>) = when {
     else -> Tile.EW
 }
 
-fun tileOrNull(point: Point, dir: Direction, map: List<List<Tile>>) =
-    point.advanceTowards(dir) { row, col -> map.getOrNull(row)?.getOrNull(col) ?: Tile.G }.second.tile
+fun tileOrNull(point: Point, dir: Direction, map: Map<Int, Map<Int, Tile>>) =
+    point.advanceTowards(dir) { row, col -> map[row]?.get(col) ?: Tile.G }.second.tile
 
 fun parse(lines: Sequence<String>) = lines
-    .map { line -> line.map { Tile.byChar(it)!! } }
-    .toList()
+    .mapIndexed { r, line ->
+        r to line.mapIndexed { c, char -> c to Tile.byChar(char)!! }
+            .filter { (_, tile) -> tile != Tile.G }
+            .toMap(mutableMapOf<Int, Tile>().withDefault { Tile.G })
+    }
+    .toMap(mutableMapOf())
