@@ -9,7 +9,7 @@ class TaskSpec : StringSpec({
     }
 
     "solves sample 2" {
-        Task.solvePart2("sample.txt") shouldBe TODO()
+        Task.solvePart2("sample.txt") shouldBe 167409079868000L
     }
 
     listOf(
@@ -21,7 +21,7 @@ class TaskSpec : StringSpec({
     }
 
     listOf(
-        "px{a<2006:qkq,m>2090:A,rfg}" to ("px" to Rule(
+        "px{a<2006:qkq,m>2090:A,rfg}" to ("px" to Rule("px",
             listOf(
                 Condition('a', false, 2006, "qkq"),
                 Condition('m', true, 2090, "A"),
@@ -41,8 +41,17 @@ class TaskSpec : StringSpec({
     ).forEach { (input, expected) ->
         input.let { (condition, part) ->
             "$part matches condition $condition" {
-                condition.matches(part) shouldBe expected
+                condition.matches(part.rating) shouldBe expected
             }
+        }
+    }
+
+    listOf(
+        "px{a<2006:qkq,m>2090:A,rfg}" to "px{a>2005:qkq,m<2091:A,rfg}",
+        "pv{a>1716:R,A}" to "pv{a<1717:R,A}"
+    ).forEach { (input, expected) ->
+        "negates $input" {
+            Task.ruleEntryOf(input).second.negate() shouldBe Task.ruleEntryOf(expected).second
         }
     }
 })
