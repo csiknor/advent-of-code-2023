@@ -18,7 +18,22 @@ class TaskSpec: StringSpec({
         }
     }
 
-    "solves sample 2" {
-        Task.solvePart2("sample.txt", 64) shouldBe 42
+    listOf(
+        6 to 16,
+        10 to 50,
+        50 to 1594,
+        100 to 6536,
+        500 to 167004,
+        1000 to 668697,
+        5000 to 16733044,
+    ).forEach { (steps, count) ->
+        "solves sample 2 with $steps steps" {
+            Task.solvePart2("sample.txt", steps) shouldBe count
+        }
     }
+
+    "solves sample 2 with a lot of steps" {
+        Task.solvePart2("sample.txt", 50) shouldBe 1594
+    }
+
 })
