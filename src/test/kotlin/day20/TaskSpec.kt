@@ -3,7 +3,7 @@ package day20
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
-class TaskSpec: StringSpec({
+class TaskSpec : StringSpec({
     "solves sample 1" {
         Task.solvePart1("sample.txt") shouldBe 32000000
     }
@@ -13,6 +13,6 @@ class TaskSpec: StringSpec({
     }
 
     "solves sample 2" {
-        Task.solvePart2("sample.txt") shouldBe TODO()
+        Task.solvePart2("sample.txt") shouldBe 4
     }
 })
