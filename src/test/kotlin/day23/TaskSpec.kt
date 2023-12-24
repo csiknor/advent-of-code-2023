@@ -9,6 +9,16 @@ class TaskSpec: StringSpec({
     }
 
     "solves sample 2" {
-        Task.solvePart2("sample.txt") shouldBe TODO()
+        Task.solvePart2("sample.txt") shouldBe 154
+    }
+
+    "test" {
+        Task.process("""
+            #.###
+            #...#
+            #.#.#
+            ###.#
+        """.trimIndent().split("\n").asSequence()
+        ) shouldBe 5
     }
 })
