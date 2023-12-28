@@ -22,6 +22,38 @@ class TaskSpec : StringSpec({
         """.trimIndent().split("\n").asSequence()) shouldBe 4
     }
 
+    "processes2a" {
+        Task.process2("""
+            0,0,1~2,0,1
+            0,2,1~2,2,1
+            0,4,1~2,4,1
+            1,0,2~1,2,2
+            1,1,3~1,1,4
+        """.trimIndent().split("\n").asSequence()) shouldBe 1
+    }
+
+    "processes2b" {
+        Task.process2("""
+            0,0,1~2,0,1
+            0,0,2~0,2,2
+            2,0,2~2,2,2
+            0,1,3~0,1,3
+            0,2,3~0,2,3
+            2,1,3~2,1,3
+            2,2,3~2,2,3
+        """.trimIndent().split("\n").asSequence()) shouldBe 10
+    }
+
+    "processes2c" {
+        Task.process2("""
+            0,0,1~2,0,1
+            0,0,2~0,0,3
+            2,0,2~2,0,2
+            2,0,3~2,0,3
+            0,0,4~2,0,4
+        """.trimIndent().split("\n").asSequence()) shouldBe 5
+    }
+
     listOf(
         "1,0,1" to P(1, 0, 1),
         "1,2,1" to P(1, 2, 1),

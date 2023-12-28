@@ -8,16 +8,25 @@ object Task {
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
     fun solvePart2(filename: String) =
-        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
+        File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(line) }
+
+    fun process2(lines: Sequence<String>) = fallen(parse(lines)).let { all ->
+        all.sumOf { pick ->
+            (all - pick)
+                .runningFold(emptyList<Brick>() to 0) { (acc, count), brick ->
+                    acc.filter { it intersects brick }.maxOfOrNull { it.b.z + 1 }
+                        .let { acc + brick.atZ(it ?: 1) to (count + (if (brick.a.z != (it ?: 1)) 1 else 0)) }
+                }.last().second
+        }
+    }
 
     fun process(lines: Sequence<String>) = fallen(parse(lines))
         .groupByTo(TreeMap<Int, MutableList<Brick>>(compareBy<Int> { it })) { it.a.z }
         .onEach { println("${it.key} -> ${it.value}") }
-        .onEach { it.value.forEach { a -> it.value.forEach { b -> check(a === b || !(a intersects b)) { "Intersects: $a, $b" } } } }
         .values
 
         .fold(emptySet<Brick>() to emptySet<Brick>()) { (acc, required), bricks ->
-            (acc + bricks) to (required + requiredSupport(acc, bricks.toSet())).also { println("Reduce $it") }
+            (acc + bricks) to (required + requiredSupport(acc, bricks.toSet()))
         }
         .let { (bricks, required) -> bricks - required }.size
 
@@ -32,7 +41,6 @@ object Task {
         acc
             .filter { brick.a.z == it.b.z + 1 && brick intersects it }
             .toSet()
-            .also { println("Supports: $brick -> $it") }
 
     private fun fallen(bricks: Sequence<Brick>) = bricks
         .runningFold(emptyList<Brick>()) { acc, brick ->
