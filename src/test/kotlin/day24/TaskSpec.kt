@@ -9,7 +9,7 @@ class TaskSpec : StringSpec({
     }
 
     "solves sample 2" {
-        Task.solvePart2("sample.txt", 7.0, 27.0) shouldBe TODO()
+        Task.solvePart2("sample.txt") shouldBe 47
     }
 
     listOf(
