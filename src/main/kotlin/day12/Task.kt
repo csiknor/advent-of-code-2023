@@ -3,77 +3,96 @@ package day12
 import java.io.File
 import kotlin.math.min
 
-data class R(val damaged: String, val counts: List<Int>)
-
 object Task {
+
+    /*
+    We parse the input into rows of conditions and a list of damage count groups. For each row we try to reduce the
+    input so that only the unknown part remains. Then we calculate the possible number of arrangements of unknown
+    damages by trying both operational and damaged options.
+     */
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
+    /*
+    Given the bigger rate the input is much larger, and a cache is introduced to reduce the computation of already
+    known parts of the input.
+     */
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line, 5) }
 
-    fun process(lines: Sequence<String>, rate: Int = 1) = par(lines, rate).mapIndexed { index, r ->
-        println(index)
-        arr(r)
-    }.sum()
+    fun process(lines: Sequence<String>, rate: Int = 1) = parse(lines, rate).sumOf { arrangeCount(it) }
 
-    val cache: MutableMap<R, Long> = mutableMapOf()
-
-    fun arr(r: R, level: Int = 0): Long {
-        val v = cache[r]
-        if (v!=null) return v
-
-        fun p(s: String) = Unit //println("  ".repeat(level) + s)
-
-        return (if (r.damaged.isEmpty()) 1L.also { p("Empty $r") } else
-            tryReduce(r)?.also { p("Reduced $r -> $it") }?.let {
-                if (it.damaged.isEmpty()) 1L.also { p("Empty2 $it") }
+    /*
+    We try to reduce the input, and if there's still unknown conditions then we try both operational and damaged options
+    and recursively count the arrangements on both. If we couldn't reduce the input then it was an incorrect assumption
+    of the unknown condition and we ignore.
+     */
+    fun arrangeCount(row: Row, cache: MutableMap<Row, Long> = mutableMapOf()): Long = cache.getOrPut(row) {
+        if (row.conditions.isEmpty()) 1L else
+            tryReduce(row)?.let {
+                if (it.conditions.isEmpty()) 1L
                 else
-                    arr(it.copy(damaged = it.damaged.replaceFirstChar { '#' }), level + 1) +
-                            arr(it.copy(damaged = it.damaged.replaceFirstChar { '.' }), level + 1)
-            } ?: 0L.also { p("Null $r") }).also { cache[r] = it }
+                    arrangeCount(it.copy(conditions = it.conditions.replaceFirstChar { '#' }), cache) +
+                            arrangeCount(it.copy(conditions = it.conditions.replaceFirstChar { '.' }), cache)
+            } ?: 0L
     }
 
-    fun tryReduceL(r: R): R? = r.let { it.copy(damaged = it.damaged.trimStart { it == '.' }) }.let { rt ->
+    /*
+    Reducing consists of trimming operational springs at the beginning. Then, if the first remaining spring is unknown
+    or no springs left, we're done. However, if the conditions and the number of damaged groups are inconsistent, we
+    hit an incorrect input.
+    Otherwise, we try to find the possible damaged wells byt looking at damaged springs followed by unknown conditions
+    and comparing the count of them to the first group of damaged count. If they match we drop the matched amount and
+    re-reduce.
+     */
+    fun tryReduceL(row: Row): Row? = row.let { it.copy(conditions = it.conditions.trimStartPeriod()) }.let {
         when {
-            rt.damaged.startsWith('?') -> rt
-            rt.damaged.isNotEmpty() && rt.counts.isEmpty() -> null
-            rt.counts.isNotEmpty() && rt.damaged.isEmpty() -> null
-            rt.damaged.isEmpty() || rt.counts.isEmpty() -> rt
+            it.conditions.startsWith('?') || it.isEmpty() -> it
+            it.isInconsistent() -> null
             else ->
-                """^\.*(#+)([#?]*)\.*([#.?]*)""".toRegex().find(rt.damaged)
-                    ?.takeIf { it.groupValues[1].length <= rt.counts.first() }
-                    ?.takeIf { rt.counts.first() <= it.groupValues[1].length + it.groupValues[2].length }
-                    ?.let { match ->
-                        val matched = min(rt.counts.first(), match.groupValues[1].length + match.groupValues[2].length)
-                        val remaining = rt.counts.first() - matched
-                        val list = if (remaining == 0) emptyList() else listOf(remaining)
-                        if (rt.damaged.drop(matched).firstOrNull() == '#') return null
-
-                        tryReduceL(R(
-                            rt.damaged.drop(matched + 1).trimStart { it == '.' },
-                            (list + rt.counts.drop(1))
-                        ))
-                    }
+                findDamagesAndUnknowns(it.conditions)
+                    ?.takeIf { (damages) -> damages.length <= it.counts.first() }
+                    ?.takeIf { (damages, unknowns) -> it.counts.first() <= damages.length + unknowns.length }
+                    ?.let { (damages, unknowns) -> min(it.counts.first(), damages.length + unknowns.length) }
+                    ?.takeUnless { matched -> it.conditions.drop(matched).firstOrNull() == '#' }
+                    ?.let { matched -> tryReduceL(it.dropFirst(matched)) }
         }
     }
 
-    fun tryReduceR(r: R) = tryReduceL(R(r.damaged.reversed(), r.counts.reversed()))?.let {
-        R(it.damaged.reversed(), it.counts.reversed())
-    }
+    private fun Row.dropFirst(matched: Int) = Row(
+        conditions.drop(matched + 1).trimStartPeriod(),
+        (listOf(counts.first() - matched).filter { it != 0 } + counts.drop(1))
+    )
 
-    fun tryReduce(r: R) = tryReduceL(r)?.let { tryReduceR(it) }
+    private fun String.trimStartPeriod() = trimStart { it == '.' }
 
-    fun par(lines: Sequence<String>, rate: Int = 1) = lines.map { line ->
-        line.split(" ").let { (first, second) ->
-            R(
-                first.toList().multiply(rate, '?').joinToString(""),
-                second.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.multiply(rate)
-            )
+    private fun findDamagesAndUnknowns(input: String) =
+        """^(#+)([#?]*)\.*([#.?]*)""".toRegex().find(input)?.groupValues?.subList(1, 3)
+
+    private fun Row.isEmpty() = conditions.isEmpty() && counts.isEmpty()
+
+    private fun Row.isInconsistent() =
+        conditions.isNotEmpty() && counts.isEmpty() || counts.isNotEmpty() && conditions.isEmpty()
+
+    // Reducing from the right is the same as reducing the reversed row from the left.
+    fun tryReduceR(row: Row) = tryReduceL(row.reversed())?.reversed()
+
+    private fun Row.reversed() = Row(conditions.reversed(), counts.reversed())
+
+    // Reducing is attempted both from left and right
+    fun tryReduce(row: Row) = tryReduceL(row)?.let { tryReduceR(it) }
+
+    fun parse(lines: Sequence<String>, rate: Int = 1) =
+        lines.map { line ->
+            line.split(" ").let { (first, second) ->
+                Row(
+                    List(rate) { first }.joinToString("?"),
+                    second.split(",").filter { it.isNotEmpty() }.map { it.toInt() } * rate
+                )
+            }
         }
-    }
 
-    fun <E> List<E>.multiply(times: Int, separator: E? = null) = 1.rangeTo(times).fold(emptyList<E>()) { acc, _ ->
-        (if (separator == null) acc else acc + separator) + this
-    }.drop(if (separator == null) 0 else 1)
+    operator fun <E> List<E>.times(times: Int) = List(times) { this }.flatten()
 }
+
+data class Row(val conditions: String, val counts: List<Int>)

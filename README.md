@@ -16,3 +16,4 @@ For the detailed solutions, visit the individual days and tasks:
 * Day 9: [Task](src/main/kotlin/day9/Task.kt)
 * Day 10: [Task](src/main/kotlin/day10/Task.kt)
 * Day 11: [Task](src/main/kotlin/day11/Task.kt)
+* Day 12: [Task](src/main/kotlin/day12/Task.kt)
