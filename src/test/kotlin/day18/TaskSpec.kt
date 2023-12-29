@@ -9,6 +9,6 @@ class TaskSpec: StringSpec({
     }
 
     "solves sample 2" {
-        Task.solvePart2("sample.txt") shouldBe TODO()
+        Task.solvePart2("sample.txt") shouldBe 952408144115
     }
 })
