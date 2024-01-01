@@ -98,7 +98,7 @@ class TaskSpec: StringSpec({
         "O..#.##O.." to 13,
     ).forEach { (input, weight) ->
         "weight rocks $input" {
-            Task.weighRocks(input) shouldBe weight
+            Task.weighRocksLeft(input) shouldBe weight
         }
     }
 
@@ -137,7 +137,7 @@ class TaskSpec: StringSpec({
         listOf(2, 0, 6, 3, 6, 6, 5, 3, 1, 6, 5, 3, 1, 6, 5, 3, 1, 6, 5, 3, 1, 6, 5, 3, 1, 6, 5, 3) to listOf(6, 5, 3, 1),
     ).forEach { (numbers, cycle) ->
         "detect cycle $cycle" {
-            Task.detectCycle(numbers)!!.let { (start, length) -> numbers.subList(start, start + length).also { println("Cycle: $start [$length]") } } shouldBe cycle
+            Task.detectCycle(numbers).let { (start, length) -> numbers.subList(start, start + length).also { println("Cycle: $start [$length]") } } shouldBe cycle
         }
     }
 })
