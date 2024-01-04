@@ -13,10 +13,14 @@ class TaskSpec: StringSpec({
     }
 
     "test" {
-        Task.process("""
-            123
-            456
-            789
-        """.trimIndent().split("\n").asSequence()).let { println("Result: $it") }
+        Task.process(
+            graph = Task.parse(
+                """
+                        123
+                        456
+                        789
+                    """.trimIndent().split("\n").asSequence()
+            )
+        ).let { println("Result: $it") }
     }
 })
