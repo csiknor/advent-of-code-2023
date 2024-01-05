@@ -4,99 +4,91 @@ import java.io.File
 import kotlin.math.pow
 
 object Task {
+    /*
+    The solution is pretty straightforward, as to parse the input, filter accepted parts based on the rules and sum
+    their rating values. Acceptance a part means traversing through the rules matching the part's ratings results in an
+    accepted state.
+     */
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
+    /*
+    In contrast with the original problem, part 2 works backwards. We only need the rules and can ignore the parts in
+    the input. We filter the rules that result in acceptance and negate them so that their conditions define the ranges
+    of the rating values that result in acceptance. For instance:
+        * px{a<2006:qkq,m>2090:A,rfg} needs a>=2006 and m>2090
+        * rfg{s<537:gd,x>2440:R,A} needs s>=537 and x<=2440
+    Then we map the rules in reverse order to the negated rules to find all the conditions needed to be resulted in
+    acceptance. Once we have it, we calculate the intersection of the ranges for all ratings, multiply them together and
+    sum for all rules to get the final result.
+     */
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(line) }
 
-    fun process(lines: Sequence<String>) = parse(lines)
-    fun process2(lines: Sequence<String>) = parse2(lines)
+    fun process(lines: Sequence<String>) = parse(lines).let { (rules, parts) ->
+        parts.filter { accepted(rules, it) }.sumOf { it.rating.values.sum() }
+    }
 
-    private fun parse(lines: Sequence<String>) = lines
-        .fold(Triple(emptyMap<String, Rule>(), false, 0)) { (rules, processed, count), line ->
-            when {
-                line.isEmpty() -> Triple(rules, true, count)
-                !processed -> Triple(rules + ruleEntryOf(line), false, count)
+    private fun process2(lines: Sequence<String>) = parse(lines)
+        .let { (rules, _) -> sumOfConditionRanges(acceptedRulesNegated(rules.values), reverse(rules.values)) }
 
-                else -> Triple(
-                    rules, true,
-                    count + (partOf(line).takeIf { accepted(rules, it) }?.rating?.values?.sum() ?: 0)
+    // We use the same iterator for the consecutive sequences to parse rules and parts
+    fun parse(lines: Sequence<String>) = lines.iterator().let { linesIterator ->
+        linesIterator.asSequence().takeWhile { it.isNotEmpty() }.mapNotNull { it.toRule() }.associateBy { it.name } to
+                linesIterator.asSequence().map { it.toPart() }
+    }
+
+    private fun sumOfConditionRanges(acceptedRulesNegated: Sequence<Rule>, reversedRules: Map<String, List<Rule>>) =
+        acceptedRulesNegated.sumOf { rule ->
+            conditionRangesTo(rule, reversedRules)
+                .values.map { it.last - it.first + 1L }
+                .let { it.reduce { acc, value -> acc * value } * 4000.0.pow(4 - it.count()).toLong() }
+        }
+
+    private fun conditionRangesTo(rule: Rule, reversedRules: Map<String, List<Rule>>) = rulesTo(rule, reversedRules)
+        .flatMap { it.conditions }
+        .groupBy { it.cat }
+        .mapValues { (_, conds) ->
+            conds.groupBy { it.greater }.let { condsByType ->
+                IntRange(
+                    condsByType[true]?.maxOf { it.value + 1 } ?: 1,
+                    condsByType[false]?.minOf { it.value - 1 } ?: 4000,
                 )
             }
-        }.let { (_, _, count) -> count }
-
-    private fun parse2(lines: Sequence<String>) = lines
-        .takeWhile { it.isNotEmpty() }
-        .fold(emptyMap<String, Rule>()) { rules, line -> rules + ruleEntryOf(line) }.let { rules ->
-            rules.values.asSequence().filter { rule ->
-                rule.default == "A" || rule.conditions.any { it.result == "A" }
-            }.flatMap { rule ->
-                rule.conditions.withIndex().filter { it.value.result == "A" }.map { it.index }.map { rule.negate(it) } +
-                        if (rule.default == "A") listOf(rule.negate())
-                        else emptyList()
-            }
-            .onEach { println("Negated: $it") }
-            .map { rule ->
-                val revMap = rules.values
-                    .flatMap { r -> r.conditions.mapIndexed { i, c -> c.result to r.negate(i) } + (r.default to r.negate()) }
-                    .groupBy({ it.first }, { it.second })
-
-                generateSequence(listOf(rule)) { revs -> revs.flatMap { revMap[it.name] ?: emptyList() } }
-                    .takeWhile { it.isNotEmpty() }
-                    .flatten()
-                    .flatMap { it.conditions }
-                    .groupBy { it.cat }
-                    .onEach { println(it) }
-                    .mapValues { (_, conds) ->
-                        conds.groupBy { it.greater }.let { condsByType ->
-                            IntRange(
-                                condsByType[true]?.maxOf { it.value + 1 } ?: 1,
-                                condsByType[false]?.minOf { it.value - 1 } ?: 4000,
-                            )
-                        }
-                    }
-                    .onEach { println(it) }
-                    .mapValues { it.value.last - it.value.first + 1L }
-                    .onEach { println(it) }
-                    .let {
-                        it.values.reduce { acc, i -> acc * i } * 4000.0.pow(4 - it.count()).toLong()
-                    }
-                    .also { println(it) }
-            }.sum()
         }
 
-    fun accepted(rules: Map<String, Rule>, part: Part) =
-        generateSequence("in") { name ->
-            rules[name]?.eval(part)
-        }.last() == "A"
+    private fun rulesTo(rule: Rule, reversedRules: Map<String, List<Rule>>) =
+        generateSequence(listOf(rule)) { revs -> revs.flatMap { reversedRules[it.name] ?: emptyList() } }
+            .takeWhile { it.isNotEmpty() }
+            .flatten()
 
-    fun ruleEntryOf(line: String) =
-        """(\w+)\{(.*)}""".toRegex().find(line)!!.groupValues.let { (_, name, rest) ->
-            rest.split(",").let { conditions ->
-                conditions.dropLast(1).map { input ->
-                    """(\w)([<>])(\d+):(\w+)""".toRegex()
-                        .find(input)!!.groupValues.let { (_, att, op, value, res) ->
-                            Condition(att[0], op == ">", value.toInt(), res)
-                        }
-                } to conditions.last()
-            }.let { (conditions, accepted) -> name to Rule(name, conditions, accepted) }
-        }
-            .also { println("Rule: ${it.second}") }
+    // Indexes rules with rule names that could result in the given rule
+    private fun reverse(rules: Collection<Rule>) = rules
+        .flatMap { r -> r.conditions.mapIndexed { i, c -> c.result to r.negate(i) } + (r.default to r.negate()) }
+        .groupBy({ it.first }, { it.second })
 
-    fun partOf(line: String) =
-        line.substring(1..<line.lastIndex)
-            .split(",")
-            .associate { r ->
-                r.split("=")
-                    .let { (c, v) -> c[0] to v.toInt() }
+    // Alternative version of rules that if all conditions are satisfied accepted result is expected
+    private fun acceptedRulesNegated(rules: Collection<Rule>) =
+        rules.asSequence().filter { rule -> rule.default == "A" || rule.conditions.any { it.result == "A" } }
+            .flatMap { rule ->
+                rule.conditions.withIndex().filter { it.value.result == "A" }.map { rule.negate(it.index) }
+                    .let { if (rule.default == "A") it + listOf(rule.negate()) else it }
             }
-            .let { Part(it) }
-            .also { println("Part: $it") }
+
+    private fun accepted(rules: Map<String, Rule>, part: Part) =
+        generateSequence("in") { name -> rules[name]?.eval(part) }.last() == "A"
 
 }
 
 data class Part(val rating: Map<Char, Int>)
+
+fun String.toPart() = substring(1..<lastIndex)
+    .split(",")
+    .associate { r ->
+        r.split("=")
+            .let { (c, v) -> c[0] to v.toInt() }
+    }
+    .let { Part(it) }
 
 data class Rule(val name: String, val conditions: List<Condition>, val default: String) {
 
@@ -116,3 +108,13 @@ data class Condition(val cat: Char, val greater: Boolean, val value: Int, val re
 
     override fun toString() = "Condition($cat ${if (greater) '>' else '<'} $value -> $result)"
 }
+
+fun String.toRule() = """(\w+)\{(.*)}""".toRegex().find(this)?.groupValues?.let { (_, name, rest) ->
+    rest.split(",").let { conditions ->
+        conditions.dropLast(1).mapNotNull { it.toCondition() } to conditions.last()
+    }.let { (conditions, default) -> Rule(name, conditions, default) }
+}
+
+fun String.toCondition() =
+    """(\w)([<>])(\d+):(\w+)""".toRegex().find(this)?.groupValues
+        ?.let { (_, att, op, value, res) -> Condition(att[0], op == ">", value.toInt(), res) }

@@ -16,20 +16,20 @@ class TaskSpec : StringSpec({
         "{x=787,m=2655,a=1222,s=2876}" to Part(mapOf('x' to 787, 'm' to 2655, 'a' to 1222, 's' to 2876)),
     ).forEach { (input, expected) ->
         "parses part" {
-            Task.partOf(input) shouldBe expected
+            input.toPart() shouldBe expected
         }
     }
 
     listOf(
-        "px{a<2006:qkq,m>2090:A,rfg}" to ("px" to Rule("px",
+        "px{a<2006:qkq,m>2090:A,rfg}" to Rule("px",
             listOf(
                 Condition('a', false, 2006, "qkq"),
                 Condition('m', true, 2090, "A"),
             ), "rfg"
-        ))
+        )
     ).forEach { (input, expected) ->
         "parses rule" {
-            Task.ruleEntryOf(input) shouldBe expected
+            input.toRule() shouldBe expected
         }
     }
 
@@ -51,7 +51,7 @@ class TaskSpec : StringSpec({
         "pv{a>1716:R,A}" to "pv{a<1717:R,A}"
     ).forEach { (input, expected) ->
         "negates $input" {
-            Task.ruleEntryOf(input).second.negate() shouldBe Task.ruleEntryOf(expected).second
+            input.toRule()?.negate() shouldBe expected.toRule()
         }
     }
 })
