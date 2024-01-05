@@ -6,76 +6,73 @@ import day8.lcm
 import java.io.File
 
 object Task {
+    /*
+    The solution is to parse the input into the appropriate types of modules which then used to process the signals
+    emitted by pressing the button a thousand times, followed by counting the low and high signals and multiplying the
+    sum to get the final result.
+     */
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
+    /*
+    The second part was beyond me and just ported a [solution](https://github.com/ash42/adventofcode/blob/main/adventofcode2023/src/nl/michielgraat/adventofcode2023/day20/Day20.java#L159)
+    that involved fabricating a binary number of based on flip-flop and conjunction modules in a row. Works like a
+    charm, kudos to the author.
+     */
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(line) }
 
-    fun process(lines: Sequence<String>) = parse(lines).let { modules ->
-        modules.forEach { (name, module) ->
-            module.targets.mapNotNull { modules[it] }.onEach { it.register(name) }
+    fun process(lines: Sequence<String>) = pulseCountsAfterThousandButtonPress(registerSources(parse(lines)))
+        .let { (l, h) -> l * h }
+
+    private fun process2(lines: Sequence<String>) =
+        numbersTillPulse(registerSources(parse(lines))).fold(1L) { acc, i -> lcm(acc, i) }
+
+    private fun registerSources(modules: Map<String, Module>) = modules.onEach { (name, module) ->
+        module.targets.mapNotNull { modules[it] }.onEach { it.register(name) }
+    }
+
+    private fun pulseCountsAfterThousandButtonPress(modules: Map<String, Module>) =
+        generateSequence {
+            pulseCountsOnButtonPress(modules).let { pulseCounts -> (pulseCounts[LOW] ?: 0) to (pulseCounts[HIGH] ?: 0) }
         }
-        modules.forEach { (_, module) -> println("Module: $module") }
-        generateSequence(0 to 0) { (low, high) ->
-            execute(modules).let { (pulseCounts, _) ->
-                (low + (pulseCounts.getOrDefault(LOW, 0)) to
-                        (high + pulseCounts.getOrDefault(HIGH, 0)))
-            }
-        }.take(1 + 1000).last()
-            .let { (l, h) -> l * h }
-    }
+            .take(1000).unzip().let { (lows, highs) -> lows.sum() to highs.sum() }
 
-    private fun process2(lines: Sequence<String>) = parse(lines).let { modules ->
-        modules.forEach { (name, module) ->
-            module.targets.mapNotNull { modules[it] }.onEach { it.register(name) }
-        }
-        modules.forEach { (_, module) -> println("Module: $module") }
+    private fun numbersTillPulse(modules: Map<String, Module>) =
+        modules.getValue("broadcaster")
+            .targets.map { buildBinaryString(modules, binaryCounterGroup(modules, it)).toLong(2) }
 
-        numbersTillPulse(modules).fold(1L) { acc, i -> lcm(acc, i) }
-    }
-
-    private fun numbersTillPulse(modules: Map<String, Module>) = modules.getValue("broadcaster").targets.map {
-        buildBinaryString(modules, binaryCounterGroup(modules, it)).toLong(2)
-    }
-
-    private fun buildBinaryString(modules: Map<String, Module>, names: List<String>) = names.joinToString("") {
-        if (modules.getValue(it).targets.any { t -> modules.getValue(t) is Conjunction }) "1" else "0"
-    }.reversed()
+    private fun buildBinaryString(modules: Map<String, Module>, names: List<String>) =
+        names.joinToString("") {
+            if (modules.getValue(it).targets.any { t -> modules.getValue(t) is Conjunction }) "1" else "0"
+        }.reversed()
 
     private fun binaryCounterGroup(modules: Map<String, Module>, name: String): List<String> =
-        listOf(name) + modules.getValue(name).targets
-            .map { modules.getValue(it) }
-            .filterIsInstance<FlipFlop>()
-            .flatMap { binaryCounterGroup(modules, it.name) }
-
-    private fun execute(modules: Map<String, Module>) =
-        generateSequence(listOf(Signal("button", "broadcaster", LOW)) to 0) { (signals, index) ->
-            if (index < signals.size)
-                Pair(
-                    signals + signals[index]//.also { println(it) }
-                        .let { modules[it.target]?.process(it.source, it.pulse) ?: emptyList() },
-                    (index + 1)
-                )
-            else null
-        }.last().let { (signals, _) ->
-            signals.groupingBy { it.pulse }.eachCount() to
-                    signals.any { it.pulse == LOW && it.target == "rx" }
+        mutableListOf(name).apply {
+            addAll(modules.getValue(name).targets
+                .map { modules.getValue(it) }
+                .filterIsInstance<FlipFlop>()
+                .flatMap { binaryCounterGroup(modules, it.name) })
         }
-    //.also { println(it) }
+
+    private fun pulseCountsOnButtonPress(modules: Map<String, Module>) =
+        generateSequence(mutableListOf(Signal("button", "broadcaster", LOW)) to 0) { (signals, index) ->
+            if (index == signals.size) null
+            else (signals[index].process(modules)?.let { signals.apply { addAll(it) } } ?: signals) to (index + 1)
+        }.last().first.groupingBy { it.pulse }.eachCount()
+
+    fun Signal.process(modules: Map<String, Module>) = modules[target]?.process(source, pulse)
 
     fun parse(lines: Sequence<String>) = lines.map { line ->
-        line.split(" -> ").let { (source, targetInput) ->
-            targetInput.split(", ").let { targets ->
-                when {
-                    source == "broadcaster" -> Broadcaster(targets)
-                    source.startsWith('%') -> FlipFlop(source.substring(1), targets)
-                    source.startsWith('&') -> Conjunction(source.substring(1), targets)
-                    else -> throw IllegalArgumentException("Unknown module: $source")
-                }//.also { println("Created: $it") }
-            }
-        }
+        line.split(" -> ").let { (source, targetInput) -> moduleOf(source, targetInput.split(", ")) }
     }.associateBy { it.name }
+
+    private fun moduleOf(source: String, targets: List<String>) = when {
+        source == "broadcaster" -> Broadcaster(targets)
+        source.startsWith('%') -> FlipFlop(source.substring(1), targets)
+        source.startsWith('&') -> Conjunction(source.substring(1), targets)
+        else -> error("Unknown module: $source")
+    }
 }
 
 enum class Pulse { HIGH, LOW }
@@ -84,11 +81,8 @@ data class Signal(val source: String, val target: String, val pulse: Pulse) {
     override fun toString() = "Signal($source —$pulse-> $target)"
 }
 
-abstract class Module(
-    val name: String,
-    val targets: List<String>,
+abstract class Module(val name: String, val targets: List<String>) {
     private val sources: MutableList<String> = mutableListOf()
-) {
 
     abstract fun process(source: String, pulse: Pulse): List<Signal>
 
@@ -104,7 +98,8 @@ class Broadcaster(targets: List<String>) : Module("broadcaster", targets) {
     override fun toString() = "Broadcaster($targets)"
 }
 
-class FlipFlop(name: String, targets: List<String>, private var on: Boolean = false) : Module(name, targets) {
+class FlipFlop(name: String, targets: List<String>) : Module(name, targets) {
+    private var on: Boolean = false
 
     override fun process(source: String, pulse: Pulse) = when (pulse) {
         HIGH -> emptyList()
@@ -121,11 +116,8 @@ class FlipFlop(name: String, targets: List<String>, private var on: Boolean = fa
     override fun toString() = "$name = FlipFlow($on, $targets)"
 }
 
-class Conjunction(
-    name: String,
-    targets: List<String>,
+class Conjunction(name: String, targets: List<String>) : Module(name, targets) {
     private val pulses: MutableMap<String, Pulse> = mutableMapOf()
-) : Module(name, targets) {
 
     override fun process(source: String, pulse: Pulse): List<Signal> {
         store(source, pulse)
