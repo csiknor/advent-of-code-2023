@@ -93,39 +93,4 @@ class TaskSpec : StringSpec({
             }
         }
     }
-
-    listOf(
-        Pair("0,0,2~2,0,2", emptyList<String>()) to Pair(1, 1),
-        Pair("0,0,2~2,0,2", listOf("1,0,1~1,2,1")) to Pair(2, 2), // on top
-
-        Pair("0,0,2~2,0,2", listOf("3,0,1~3,2,1")) to Pair(1, 2), // to the left
-        Pair("0,0,3~1,0,3", listOf("2,0,1~2,1,1")) to Pair(1, 2), // to the right
-
-        Pair("0,3,3~0,4,3", listOf("0,0,1~2,0,1")) to Pair(2, 1), // behind
-        Pair("0,0,3~0,1,3", listOf("0,2,1~2,2,1")) to Pair(2, 1), // before
-
-        Pair("0,2,3~1,2,3", listOf("2,0,1~2,1,1")) to Pair(1, 1), // behind to the right
-        Pair("3,2,3~4,2,3", listOf("2,0,1~2,1,1")) to Pair(1, 1), // behind to the left
-        Pair("0,0,3~1,0,3", listOf("2,2,1~2,3,1")) to Pair(1, 1), // before to the right
-        Pair("3,1,3~4,1,3", listOf("2,2,1~2,3,1")) to Pair(1, 1), // before to the left
-
-        Pair("0,0,4~2,0,4", listOf("1,0,1~1,2,1", "1,0,2~1,2,2")) to Pair(3, 3), // on top both
-
-        Pair("0,2,4~2,2,4", listOf("1,0,1~1,2,1", "0,1,2~2,1,2")) to Pair(3, 2), // on top and behind
-        Pair("0,0,4~2,0,4", listOf("1,0,1~1,2,1", "0,1,2~2,1,2")) to Pair(3, 2), // on top and before
-
-        Pair("0,0,4~2,0,4", listOf("1,0,1~1,2,1", "3,0,1~3,0,2")) to Pair(2, 3), // on top and to the left
-        Pair("1,0,4~2,0,4", listOf("1,0,1~1,2,1", "0,0,1~0,0,2")) to Pair(2, 3), // on top and to the right
-
-//        Pair("0,6,1~0,9,1", listOf("9,6,1~9,8,1", "0,5,1~0,5,2")) to Pair(1, 1),
-    ).forEach { (input, expected) ->
-        input.let { (brick, acc) ->
-            "$brick minByX $acc" {
-                Task.minByX(brick.toBrick(), acc.map { it.toBrick() }) shouldBe expected.first
-            }
-            "$brick minByY $acc" {
-                Task.minByY(brick.toBrick(), acc.map { it.toBrick() }) shouldBe expected.second
-            }
-        }
-    }
 })

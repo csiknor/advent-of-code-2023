@@ -4,60 +4,55 @@ import java.io.File
 import java.util.*
 
 object Task {
+
+    /*
+    The solution is parsing the input into bricks and then letting them fall so that supporting bricks can be
+    calculated. When a brick is supported by only one brick then that one is required, everything else can be safely
+    removed without a brick falling down. Falling and supporting relies on the same logic: if there's an intersecting
+    brick below. This can be figured byt looking at the horizontal plane (x, y) intersection of bricks and their
+    elevation (z).
+     */
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
+    /*
+    For part 2 we need to try to remove bricks one by one and see how many bricks would fall as a consequence.
+    Note: this is not too fast, but performs well enough.
+     */
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(line) }
 
-    fun process2(lines: Sequence<String>) = fallen(parse(lines)).let { all ->
-        all.sumOf { pick ->
-            (all - pick)
-                .runningFold(emptyList<Brick>() to 0) { (acc, count), brick ->
-                    acc.filter { it intersects brick }.maxOfOrNull { it.b.z + 1 }
-                        .let { acc + brick.atZ(it ?: 1) to (count + (if (brick.a.z != (it ?: 1)) 1 else 0)) }
-                }.last().second
-        }
-    }
+    fun process2(lines: Sequence<String>) = fallen(parse(lines)).first
+        .let { all -> all.sumOf { pick -> fallen(all.asSequence().minus(pick)).second } }
 
-    fun process(lines: Sequence<String>) = fallen(parse(lines))
+    fun process(lines: Sequence<String>) = fallen(parse(lines)).first
         .groupByTo(TreeMap<Int, MutableList<Brick>>(compareBy<Int> { it })) { it.a.z }
-        .onEach { println("${it.key} -> ${it.value}") }
-        .values
-
-        .fold(emptySet<Brick>() to emptySet<Brick>()) { (acc, required), bricks ->
-            (acc + bricks) to (required + requiredSupport(acc, bricks.toSet()))
-        }
-        .let { (bricks, required) -> bricks - required }.size
+        .values.fold(mutableSetOf<Brick>() to mutableSetOf<Brick>()) { (acc, required), bricks ->
+            acc.apply { addAll(bricks) } to required.apply { addAll(requiredSupport(acc, bricks.toSet())) }
+        }.let { (bricks, required) -> bricks - required }.size
 
     private fun requiredSupport(acc: Set<Brick>, bricks: Set<Brick>) =
         if (acc.isEmpty()) emptySet()
-        else bricks.map { brick -> supporting(acc, brick) }
+        else bricks.asSequence()
+            .map { supporting(acc, it) }
             .filter { it.size == 1 }
             .reduceOrNull { a, b -> a.union(b) }
             ?: emptySet()
 
     private fun supporting(acc: Set<Brick>, brick: Brick) =
-        acc
+        acc.asSequence()
             .filter { brick.a.z == it.b.z + 1 && brick intersects it }
             .toSet()
 
-    private fun fallen(bricks: Sequence<Brick>) = bricks
-        .runningFold(emptyList<Brick>()) { acc, brick ->
-            acc + acc.filter { a -> a intersects brick }.maxOfOrNull { it.b.z + 1 }.let { brick.atZ(it ?: 1) }
+    private fun fallen(bricks: Sequence<Brick>): Pair<List<Brick>, Int> = bricks
+        .runningFold(mutableListOf<Brick>() to 0) { (acc, count), brick ->
+            acc.filter { it intersects brick }.maxOfOrNull { it.b.z + 1 }
+                .let {
+                    acc.apply { add(brick.atZ(it ?: 1)) } to if (brick.a.z != (it ?: 1)) count + 1 else count
+                }
         }.last()
 
-    fun minByX(brick: Brick, acc: List<Brick>) =
-        acc.filter { b -> b.a.x..b.b.x intersects brick.a.x..brick.b.x }
-            .maxOfOrNull { it.b.z + 1 } ?: 1
-
-
-    fun minByY(brick: Brick, acc: List<Brick>) =
-        acc.filter { b -> b.a.y..b.b.y intersects brick.a.y..brick.b.y }
-            .maxOfOrNull { it.b.z + 1 } ?: 1
-
-    fun parse(lines: Sequence<String>) = lines.map { it.toBrick() }
-        .sortedBy { it.a.z }
+    fun parse(lines: Sequence<String>) = lines.map { it.toBrick() }.sortedBy { it.a.z }
 }
 
 infix fun Brick.intersects(other: Brick) =
