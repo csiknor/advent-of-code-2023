@@ -28,3 +28,4 @@ For the detailed solutions, visit the individual days and tasks:
 * Day 21: [Task](src/main/kotlin/day21/Task.kt)
 * Day 22: [Task](src/main/kotlin/day22/Task.kt)
 * Day 23: [Task](src/main/kotlin/day23/Task.kt)
+* Day 24: [Task](src/main/kotlin/day24/Task.kt)

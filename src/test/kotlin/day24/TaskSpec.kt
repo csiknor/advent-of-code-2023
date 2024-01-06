@@ -31,9 +31,7 @@ class TaskSpec : StringSpec({
     ).forEach { (points, expected) ->
         points.let { (a, b) ->
             "$a intersection $b" {
-                val (p1, v1) = a.toPV()
-                val (p2, v2) = b.toPV()
-                Task.intersection(p1, v1, p2, v2)?.rounded() shouldBe expected
+                Task.intersection(a.toPV(),b.toPV())?.rounded() shouldBe expected
             }
         }
     }

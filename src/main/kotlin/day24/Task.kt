@@ -4,32 +4,37 @@ import java.io.File
 import kotlin.math.round
 
 object Task {
+
+    /*
+    The solution involves parsing the input, and only using their x and v coordinates, which makes finding intersections
+    much easier. It is calculated for each line and counted if they're in the desired range.
+     */
     fun solvePart1(filename: String, start: Double = 200000000000000.0, end: Double = 400000000000000.0) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line, start, end) }
 
+    /*
+    Part 2 is more complex, but can be reduced to a reasonable problem involving a set of lines only. See the
+    [original solution](https://github.com/ash42/adventofcode/blob/main/adventofcode2023/src/nl/michielgraat/adventofcode2023/day24/Day24.java#L81)
+    for more details and kudos to the author.
+     */
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process2(line) }
 
     private fun process2(lines: Sequence<String>) =
         parse(lines).let { rocks ->
-            calcPlainVector(rocks)
-                .let { (x, y, vx, vy) -> PV(P(round(x), round(y)), P(round(vx), round(vy))) }
-                .let { pv ->
-                    calcElev(rocks, pv.p.x, pv.v.x)
-                        .let { (z, zv) -> PV(pv.p.copy(z = round(z)), pv.v.copy(z = round(zv))) }
-                }.let { pv -> (pv.p.x + pv.p.y + pv.p.z).toLong() }
+            calcElev(rocks, calcPlainVector(rocks)).let { pv -> (pv.p.x + pv.p.y + pv.p.z).toLong() }
         }
 
-    private fun calcElev(rocks: Collection<PV>, x: Double, vx: Double) =
+    private fun calcElev(rocks: Collection<PV>, pv: PV) =
         rocks.windowed(2) { (r1, r2) ->
             arrayOf(
                 r1.v.x - r2.v.x,
                 r2.p.x - r1.p.x,
             ) to (-r1.p.x * r1.v.z + r1.p.z * r1.v.x + r2.p.x * r2.v.z - r2.p.z * r2.v.x
-                    - ((r2.v.z - r1.v.z) * x) - ((r1.p.z - r2.p.z) * vx))
+                    - ((r2.v.z - r1.v.z) * pv.p.x) - ((r1.p.z - r2.p.z) * pv.v.x))
         }.take(2).unzip().let { (coeff, rhs) ->
             gaussianElimination(coeff.toTypedArray(), rhs.toTypedArray()).let { (i1, i2) -> i1 to i2 }
-        }
+        }.let { (z, zv) -> PV(pv.p.copy(z = round(z)), pv.v.copy(z = round(zv))) }
 
     private fun calcPlainVector(rocks: Collection<PV>) =
         rocks.windowed(2) { (r1, r2) ->
@@ -41,7 +46,7 @@ object Task {
             ) to (-r1.p.x * r1.v.y + r1.p.y * r1.v.x + r2.p.x * r2.v.y - r2.p.y * r2.v.x)
         }.take(4).unzip().let { (coeff, rhs) ->
             gaussianElimination(coeff.toTypedArray(), rhs.toTypedArray())
-        }
+        }.let { (x, y, vx, vy) -> PV(P(round(x), round(y)), P(round(vx), round(vy))) }
 
     private fun gaussianElimination(coeff: Array<Array<Double>>, rhs: Array<Double>): Array<Double> {
         for (i in coeff.indices) {
@@ -67,32 +72,28 @@ object Task {
 
 
     fun process(lines: Sequence<String>, start: Double, end: Double) = connectEach(parse(lines))
-        .mapNotNull { intersection(it.first().p, it.first().v, it.last().p, it.last().v) }
+        .mapNotNull { intersection(it.first(), it.last()) }
         .count { (x, y) -> x in start..end && y in start..end }
 
-    fun connectEach(pv: Collection<PV>) = pv
-        .flatMap { pv1 ->
-            pv
-                .filter { it != pv1 }
-                .map { pv2 -> setOf(pv1, pv2) }
-        }.distinct()
+    private fun connectEach(pv: Collection<PV>) = pv.asSequence()
+        .flatMap { pv1 -> pv.asSequence().minus(pv1).map { pv2 -> setOf(pv1, pv2) } }.toSet()
 
     private fun parse(lines: Sequence<String>) = lines.map { line -> line.toPV() }.toList()
 
-    fun intersection(p1: P, v1: P, p2: P, v2: P): P? {
-        val n1 = P(v1.y, -v1.x)
-        val n2 = P(v2.y, -v2.x)
-        val c1 = n1.x * p1.x + n1.y * p1.y
-        val c2 = n2.x * p2.x + n2.y * p2.y
+    fun intersection(a: PV, b: PV): P? {
+        val n1 = P(a.v.y, -a.v.x)
+        val n2 = P(b.v.y, -b.v.x)
+        val c1 = n1.x * a.p.x + n1.y * a.p.y
+        val c2 = n2.x * b.p.x + n2.y * b.p.y
         val x = (c1 * n2.y - c2 * n1.y) / (n2.y * n1.x - n1.y * n2.x)
         val y = (c1 - n1.x * x) / n1.y
         return P(x, y)
             .takeIf {
                 x != Double.NEGATIVE_INFINITY && x != Double.POSITIVE_INFINITY
-                        && (x > p1.x && v1.x > 0 || x < p1.x && v1.x < 0)
-                        && (x > p2.x && v2.x > 0 || x < p2.x && v2.x < 0)
-                        && (y > p1.y && v1.y > 0 || y < p1.y && v1.y < 0)
-                        && (y > p2.y && v2.y > 0 || y < p2.y && v2.y < 0)
+                        && (x > a.p.x && a.v.x > 0 || x < a.p.x && a.v.x < 0)
+                        && (x > b.p.x && b.v.x > 0 || x < b.p.x && b.v.x < 0)
+                        && (y > a.p.y && a.v.y > 0 || y < a.p.y && a.v.y < 0)
+                        && (y > b.p.y && b.v.y > 0 || y < b.p.y && b.v.y < 0)
             }
             ?.rounded()
     }
