@@ -8,10 +8,6 @@ class TaskSpec: StringSpec({
         Task.solvePart1("sample.txt") shouldBe 54
     }
 
-    "solves sample 2" {
-        Task.solvePart2("sample.txt") shouldBe TODO()
-    }
-
     "parses" {
         Task.parse("""
             jqt: rhn xhk
@@ -27,11 +23,11 @@ class TaskSpec: StringSpec({
     }
 
     "dijkstra" {
-        Task.dijkstra(mapOf(
+        Task.shortestPathSize(mapOf(
             "A" to setOf("B", "C"),
             "B" to setOf("A", "D"),
             "C" to setOf("A"),
             "D" to setOf("B"),
-        ), "A", "D") shouldBe listOf("A", "B", "D")
+        ), "A", "D") shouldBe 2
     }
 })
