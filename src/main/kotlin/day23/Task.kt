@@ -3,9 +3,19 @@ package day23
 import java.io.File
 
 object Task {
+
+    /*
+    The solution is to parse the input and then try out all the possible paths to find the longest. Whenever we consider
+    a next step, we incorporate the slipperiness of the road proceed accordingly. To make sure we don't step on the same
+    path twice we persist the current path on the board.
+     */
     fun solvePart1(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line) }
 
+    /*
+    The second part is pretty much the same as the first one, except the slipperiness isn't taken into account.
+    Note: this is painfully slow, but the end is near! (Takes 10 minutes.)
+     */
     fun solvePart2(filename: String) =
         File(javaClass.getResource(filename)!!.toURI()).useLines { line -> process(line, false) }
 
